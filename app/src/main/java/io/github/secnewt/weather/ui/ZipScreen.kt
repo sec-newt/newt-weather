@@ -29,6 +29,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.secnewt.ui.neonFieldColors
 import io.github.secnewt.ui.neonOutline
+import io.github.secnewt.ui.newtContainerColor
 import io.github.secnewt.weather.data.ZipTable
 
 /**
@@ -43,7 +44,7 @@ fun ZipScreen(
     onSave: (String) -> Unit,
     onCancel: (() -> Unit)?,
 ) {
-    Scaffold { padding ->
+    Scaffold(containerColor = newtContainerColor()) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()

@@ -12,6 +12,10 @@ android.permission.INTERNET
 # "Turn on warnings".
 android.permission.POST_NOTIFICATIONS
 #
+# Follows Newt Home's look (terminal or clean). Signature-level, so Newt Home
+# grants it only to Newt-signed apps; it shares nothing but which look.
+io.github.secnewt.home.permission.READ_LOOK
+#
 # Added by WorkManager, which runs the background refresh:
 # - only refresh when the phone is online
 android.permission.ACCESS_NETWORK_STATE
