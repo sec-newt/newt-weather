@@ -25,8 +25,8 @@ jobs:
     uses: sec-newt/newt-android-lib/.github/workflows/newt-app.yml@5524a8c4996fe52098362d3c8e71a58bae5c77e1 # v1.1.0
     # The app's names, used for the test APK and release files. scripts/new-app.sh sets these.
     with:
-      app-slug: newt-template
-      app-name: Newt Template
+      app-slug: newt-weather
+      app-name: Newt Weather
     secrets:
       SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
       SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
