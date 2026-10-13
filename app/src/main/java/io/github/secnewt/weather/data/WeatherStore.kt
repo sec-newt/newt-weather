@@ -23,6 +23,11 @@ class WeatherStore(context: Context) {
         get() = prefs.getStringSet(KEY_NOTIFIED, emptySet()).orEmpty()
         set(value) { prefs.edit().putStringSet(KEY_NOTIFIED, value).apply() }
 
+    /** Whether the notification permission has been asked for, to tell "never asked" from "said no". */
+    var askedNotifications: Boolean
+        get() = prefs.getBoolean(KEY_ASKED, false)
+        set(value) { prefs.edit().putBoolean(KEY_ASKED, value).apply() }
+
     /** The points answer and station for a ZIP rarely change, so they're reused until the ZIP does. */
     fun cachedPoints(zip: String): Pair<String, String?>? {
         if (prefs.getString(KEY_POINTS_ZIP, null) != zip) return null
@@ -73,6 +78,7 @@ class WeatherStore(context: Context) {
     private companion object {
         const val KEY_ZIP = "zip"
         const val KEY_NOTIFIED = "notified_warnings"
+        const val KEY_ASKED = "asked_notifications"
         const val KEY_POINTS_ZIP = "points_zip"
         const val KEY_STATION = "station"
         const val KEY_FORECAST_ZIP = "forecast_zip"
