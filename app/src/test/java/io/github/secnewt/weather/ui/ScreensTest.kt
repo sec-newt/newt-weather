@@ -8,6 +8,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import io.github.secnewt.test.newtScreenshot
+import io.github.secnewt.ui.NewtLook
+import io.github.secnewt.ui.NewtLookTheme
 import io.github.secnewt.weather.data.Fixtures
 import org.junit.Rule
 import org.junit.Test
@@ -125,6 +127,45 @@ class ScreensTest {
     @Test
     fun warningsOffLargeText() =
         composeRule.newtScreenshot("warnings-off-200pct", dark = true, fontScale = 2f) { NotificationsCard(false, {}, {}) }
+
+    // The terminal look, as when Newt Home is set to `look terminal`.
+    @Test
+    fun terminalWeatherDark() = composeRule.newtScreenshot("terminal-weather-dark", dark = true) {
+        NewtLookTheme(NewtLook.TERMINAL) { WeatherNow() }
+    }
+
+    @Test
+    fun terminalWeatherLight() = composeRule.newtScreenshot("terminal-weather-light", dark = false) {
+        NewtLookTheme(NewtLook.TERMINAL) { WeatherNow() }
+    }
+
+    @Test
+    fun terminalWeatherLargeText() = composeRule.newtScreenshot("terminal-weather-200pct", dark = true, fontScale = 2f) {
+        NewtLookTheme(NewtLook.TERMINAL) { WeatherNow() }
+    }
+
+    @Test
+    fun terminalZipDark() = composeRule.newtScreenshot("terminal-zip-dark", dark = true) {
+        NewtLookTheme(NewtLook.TERMINAL) { ZipScreen(initial = "", error = null, onSave = {}, onCancel = null) }
+    }
+
+    @androidx.compose.runtime.Composable
+    private fun WeatherNow() = WeatherScreen(
+        forecast = Fixtures.forecast(),
+        now = Fixtures.NOON,
+        zone = zone,
+        refreshing = false,
+        status = null,
+        notificationsAllowed = false,
+        onRefresh = {},
+        onAllowNotifications = {},
+        onNotificationSettings = {},
+        editingZip = false,
+        zipError = null,
+        onEditZip = {},
+        onSaveZip = {},
+        onCancelZip = {},
+    )
 
     @Test
     fun loadingFailedDark() = composeRule.newtScreenshot("loading-failed-dark", dark = true) {

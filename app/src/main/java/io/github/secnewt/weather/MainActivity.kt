@@ -14,7 +14,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
+import io.github.secnewt.ui.NewtLookTheme
 import io.github.secnewt.ui.NewtTheme
+import io.github.secnewt.ui.rememberFamilyLook
 import io.github.secnewt.weather.alerts.WarningNotifier
 import io.github.secnewt.weather.data.Forecast
 import io.github.secnewt.weather.data.RefreshException
@@ -58,7 +60,10 @@ class MainActivity : ComponentActivity() {
         if (zip != null) RefreshWorker.schedule(this)
         setContent {
             NewtTheme {
-                App()
+                // Follows Newt Home's look (`look terminal` / `look clean`); clean without it.
+                NewtLookTheme(rememberFamilyLook()) {
+                    App()
+                }
             }
         }
     }
