@@ -1,7 +1,9 @@
 package io.github.secnewt.weather
 
 import android.Manifest
+import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -89,7 +91,8 @@ class MainActivity : ComponentActivity() {
                 status = status,
                 notificationsAllowed = notificationsAllowed,
                 onRefresh = ::refresh,
-                onAllowNotifications = { askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS) },
+                onAllowNotifications = ::turnOnWarnings,
+                onNotificationSettings = ::openNotificationSettings,
                 editingZip = editingZip,
                 zipError = zipError,
                 onEditZip = { editingZip = true },
@@ -97,6 +100,24 @@ class MainActivity : ComponentActivity() {
                 onCancelZip = { editingZip = false; zipError = null },
             )
         }
+    }
+
+    /**
+     * Asks for the notification permission. After two "Don't allow"s Android stops asking,
+     * so from then on this opens the app's notification settings instead of doing nothing.
+     */
+    private fun turnOnWarnings() {
+        val permission = Manifest.permission.POST_NOTIFICATIONS
+        if (store.askedNotifications && !shouldShowRequestPermissionRationale(permission)) {
+            openNotificationSettings()
+        } else {
+            store.askedNotifications = true
+            askNotifications.launch(permission)
+        }
+    }
+
+    private fun openNotificationSettings() {
+        startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
     }
 
     private fun saveZip(newZip: String) {

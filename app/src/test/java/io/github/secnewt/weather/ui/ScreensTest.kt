@@ -38,6 +38,7 @@ class ScreensTest {
                 notificationsAllowed = false,
                 onRefresh = {},
                 onAllowNotifications = {},
+                onNotificationSettings = {},
                 editingZip = false,
                 zipError = null,
                 onEditZip = {},
@@ -108,6 +109,22 @@ class ScreensTest {
     @Test
     fun zipCardErrorLargeText() =
         zipCard("zip-card-error-200pct", dark = true, editing = true, error = "That ZIP isn't one we know. Check the five digits.", fontScale = 2f)
+
+    @Test
+    fun warningsOffDark() {
+        composeRule.newtScreenshot("warnings-off-dark", dark = true) { NotificationsCard(false, {}, {}) }
+        composeRule.onNodeWithText("Turn on warnings").assertIsDisplayed()
+    }
+
+    @Test
+    fun warningsOnLight() {
+        composeRule.newtScreenshot("warnings-on-light", dark = false) { NotificationsCard(true, {}, {}) }
+        composeRule.onNodeWithText("Notification settings").assertIsDisplayed()
+    }
+
+    @Test
+    fun warningsOffLargeText() =
+        composeRule.newtScreenshot("warnings-off-200pct", dark = true, fontScale = 2f) { NotificationsCard(false, {}, {}) }
 
     @Test
     fun loadingFailedDark() = composeRule.newtScreenshot("loading-failed-dark", dark = true) {

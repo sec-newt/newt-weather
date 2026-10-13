@@ -57,6 +57,7 @@ fun WeatherScreen(
     notificationsAllowed: Boolean,
     onRefresh: () -> Unit,
     onAllowNotifications: () -> Unit,
+    onNotificationSettings: () -> Unit,
     editingZip: Boolean,
     zipError: String?,
     onEditZip: () -> Unit,
@@ -80,11 +81,12 @@ fun WeatherScreen(
             item { NowCard(forecast, now) }
             items(forecast.alerts, key = { it.id }) { AlertCard(it) }
             if (hasWarning && !notificationsAllowed) {
-                item { NotificationOffer(onAllowNotifications) }
+                item(key = "warnings-top") { NotificationsCard(false, onAllowNotifications, onNotificationSettings) }
             }
             item { SectionHeading("Next 7 days") }
             items(forecast.days(now), key = { it.name }) { DayCard(it) }
             item { Footer(forecast, zone, refreshing, status, onRefresh) }
+            item { NotificationsCard(notificationsAllowed, onAllowNotifications, onNotificationSettings) }
             item {
                 ZipCard(
                     place = forecast.place.label,
@@ -203,8 +205,13 @@ private fun AlertCard(alert: Alert) {
     }
 }
 
+/**
+ * Warning notifications: always reachable from the bottom of the forecast, so they can be
+ * turned on before a warning arrives, and shown near the top too while a warning is active
+ * and they're off.
+ */
 @Composable
-private fun NotificationOffer(onAllow: () -> Unit) {
+fun NotificationsCard(allowed: Boolean, onTurnOn: () -> Unit, onOpenSettings: () -> Unit) {
     Card(
         border = neonOutline(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -212,13 +219,29 @@ private fun NotificationOffer(onAllow: () -> Unit) {
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             CardTitle("Warning notifications")
-            Text(
-                "Get a notification when the National Weather Service issues a warning for your ZIP " +
-                    "(tornado, severe thunderstorm, flood, freeze). Watches and advisories stay quiet.",
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Button(onClick = onAllow, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-                Text("Turn on warnings", style = MaterialTheme.typography.titleMedium)
+            if (allowed) {
+                Text(
+                    "On. You'll get a notification when the National Weather Service issues a " +
+                        "warning for your ZIP. Watches and advisories stay quiet.",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                OutlinedButton(
+                    onClick = onOpenSettings,
+                    border = neonOutline(),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                ) {
+                    Text("Notification settings", style = MaterialTheme.typography.titleMedium)
+                }
+            } else {
+                Text(
+                    "Off. Turn on to get a notification when the National Weather Service issues a " +
+                        "warning for your ZIP (tornado, severe thunderstorm, flood, freeze). Watches " +
+                        "and advisories stay quiet.",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Button(onClick = onTurnOn, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                    Text("Turn on warnings", style = MaterialTheme.typography.titleMedium)
+                }
             }
         }
     }
