@@ -3,6 +3,7 @@ package io.github.secnewt.weather
 import android.Manifest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -70,8 +71,10 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun App() {
         val current = forecast
+        // Back closes the ZIP box (card or screen) instead of leaving the app.
+        BackHandler(enabled = editingZip) { editingZip = false; zipError = null }
         when {
-            zip == null || editingZip -> ZipScreen(
+            zip == null || (editingZip && current == null) -> ZipScreen(
                 initial = zip.orEmpty(),
                 error = zipError,
                 onSave = ::saveZip,
@@ -86,8 +89,12 @@ class MainActivity : ComponentActivity() {
                 status = status,
                 notificationsAllowed = notificationsAllowed,
                 onRefresh = ::refresh,
-                onChangeZip = { editingZip = true },
                 onAllowNotifications = { askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS) },
+                editingZip = editingZip,
+                zipError = zipError,
+                onEditZip = { editingZip = true },
+                onSaveZip = ::saveZip,
+                onCancelZip = { editingZip = false; zipError = null },
             )
         }
     }

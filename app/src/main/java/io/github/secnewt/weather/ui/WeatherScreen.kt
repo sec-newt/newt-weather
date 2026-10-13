@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -20,6 +21,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -36,7 +38,6 @@ import androidx.compose.ui.unit.dp
 import io.github.secnewt.ui.CardTitle
 import io.github.secnewt.ui.NewtFonts
 import io.github.secnewt.ui.SectionHeading
-import io.github.secnewt.ui.TabHeader
 import io.github.secnewt.ui.neonOutline
 import io.github.secnewt.weather.data.Alert
 import io.github.secnewt.weather.data.Day
@@ -55,17 +56,27 @@ fun WeatherScreen(
     status: String?,
     notificationsAllowed: Boolean,
     onRefresh: () -> Unit,
-    onChangeZip: () -> Unit,
     onAllowNotifications: () -> Unit,
+    editingZip: Boolean,
+    zipError: String?,
+    onEditZip: () -> Unit,
+    onSaveZip: (String) -> Unit,
+    onCancelZip: () -> Unit,
 ) {
     val hasWarning = forecast.alerts.any { it.isWarning }
+    val list = rememberLazyListState()
+    // Opening the ZIP card from the title brings it into view.
+    LaunchedEffect(editingZip) {
+        if (editingZip) list.animateScrollToItem(list.layoutInfo.totalItemsCount - 1)
+    }
     Scaffold { padding ->
         LazyColumn(
+            state = list,
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            item { TabHeader(title = forecast.place.label.ifEmpty { forecast.zip }, onOpenSettings = onChangeZip) }
+            item { PlaceTitle(forecast.place.label.ifEmpty { "ZIP ${forecast.zip}" }, onEditZip) }
             item { NowCard(forecast, now) }
             items(forecast.alerts, key = { it.id }) { AlertCard(it) }
             if (hasWarning && !notificationsAllowed) {
@@ -74,8 +85,35 @@ fun WeatherScreen(
             item { SectionHeading("Next 7 days") }
             items(forecast.days(now), key = { it.name }) { DayCard(it) }
             item { Footer(forecast, zone, refreshing, status, onRefresh) }
+            item {
+                ZipCard(
+                    place = forecast.place.label,
+                    zip = forecast.zip,
+                    editing = editingZip,
+                    error = zipError,
+                    onEdit = onEditZip,
+                    onSave = onSaveZip,
+                    onCancel = onCancelZip,
+                )
+            }
         }
     }
+}
+
+/** The place name; tapping it is a shortcut to the ZIP card at the bottom. */
+@Composable
+private fun PlaceTitle(title: String, onEditZip: () -> Unit) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.headlineMedium,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clickable(role = Role.Button, onClickLabel = "Change ZIP", onClick = onEditZip)
+            .semantics { heading() }
+            .padding(vertical = 8.dp),
+    )
 }
 
 @Composable
