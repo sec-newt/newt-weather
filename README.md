@@ -25,8 +25,10 @@ next to every icon, following the [house style](NEWT_STYLE.md).
   coordinates go to the National Weather Service, to get the forecast.
 - The only place the app connects to is `api.weather.gov`. No ads, analytics, Google Play
   Services or accounts.
-- Later, Newt Home will show the forecast on the home screen without internet of its own:
-  Newt Weather will share it only with apps signed with the Newt key.
+- **Sharing with Newt Home:** temperatures, conditions and active warnings (not the ZIP or
+  place) are readable only by apps signed with the Newt key, through a signature permission
+  nobody is ever asked for. Newt Home shows the weather without internet of its own. The
+  shared format is documented in `share/ForecastShare.kt`.
 
 See [PLAN.md](PLAN.md) for the plan and [SECURITY.md](SECURITY.md) for security details.
 

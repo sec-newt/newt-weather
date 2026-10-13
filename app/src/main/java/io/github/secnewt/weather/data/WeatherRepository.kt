@@ -1,6 +1,7 @@
 package io.github.secnewt.weather.data
 
 import android.content.Context
+import io.github.secnewt.weather.share.ForecastShare
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -10,7 +11,7 @@ class RefreshException(message: String, cause: Throwable? = null) : Exception(me
 
 /** Fetches a fresh forecast for the saved ZIP and stores it. */
 class WeatherRepository(
-    context: Context,
+    private val context: Context,
     private val store: WeatherStore = WeatherStore(context),
     private val zips: ZipTable = ZipTable(context),
     private val noaa: NoaaClient = NoaaClient(),
@@ -37,6 +38,8 @@ class WeatherRepository(
             // Parse before saving, so a broken answer never replaces a good forecast.
             NoaaParser.periods(forecast); NoaaParser.periods(hourly); NoaaParser.alerts(alerts)
             store.save(zip, forecast, hourly, observation, alerts, Instant.now())
+            // Newt Home redraws the weather as soon as a fresh forecast lands.
+            context.contentResolver.notifyChange(ForecastShare.summaryUri(context.packageName), null)
         } catch (e: RefreshException) {
             throw e
         } catch (e: kotlinx.coroutines.CancellationException) {

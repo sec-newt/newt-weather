@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Newt Weather</string>
+    <string name="read_forecast_permission">see the Newt Weather forecast</string>
+    <string name="read_forecast_permission_description">Temperatures, conditions and active warnings only, not your ZIP. Only apps signed with the Newt key can have this.</string>
 </resources>
