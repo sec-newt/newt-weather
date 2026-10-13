@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import io.github.secnewt.ui.CardTitle
 import io.github.secnewt.ui.NewtFonts
 import io.github.secnewt.ui.NewtPromptLine
+import io.github.secnewt.ui.terminalLook
 import io.github.secnewt.ui.neonOutline
 import io.github.secnewt.ui.newtContainerColor
 import io.github.secnewt.weather.data.Alert
@@ -66,6 +67,9 @@ fun WeatherScreen(
     onCancelZip: () -> Unit,
 ) {
     val hasWarning = forecast.alerts.any { it.isWarning }
+    // Terminal lines are only list items in the terminal look, so the clean look's spacing
+    // stays exactly as it was.
+    val terminal = terminalLook()
     val list = rememberLazyListState()
     // Opening the ZIP card from the title brings it into view.
     LaunchedEffect(editingZip) {
@@ -80,16 +84,16 @@ fun WeatherScreen(
         ) {
             item { PlaceTitle(forecast.place.label.ifEmpty { "ZIP ${forecast.zip}" }, onEditZip) }
             // Terminal lines above each section in the terminal look (nothing in the clean one).
-            item { NewtPromptLine("weather", "now", title = null) }
+            if (terminal) item { NewtPromptLine("weather", "now", title = null) }
             item { NowCard(forecast, now) }
-            if (forecast.alerts.isNotEmpty()) item { NewtPromptLine("weather", "alerts", title = null) }
+            if (terminal && forecast.alerts.isNotEmpty()) item { NewtPromptLine("weather", "alerts", title = null) }
             items(forecast.alerts, key = { it.id }) { AlertCard(it) }
             if (hasWarning && !notificationsAllowed) {
                 item(key = "warnings-top") { NotificationsCard(false, onAllowNotifications, onNotificationSettings) }
             }
             item { NewtPromptLine("weather", "forecast --7d", title = "Next 7 days") }
             items(forecast.days(now), key = { it.name }) { DayCard(it) }
-            item { NewtPromptLine("weather", "config", title = null) }
+            if (terminal) item { NewtPromptLine("weather", "config", title = null) }
             item { Footer(forecast, zone, refreshing, status, onRefresh) }
             item { NotificationsCard(notificationsAllowed, onAllowNotifications, onNotificationSettings) }
             item {
