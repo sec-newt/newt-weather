@@ -40,7 +40,10 @@ fun ZipScreen(
     onCancel: (() -> Unit)?,
 ) {
     var zip by rememberSaveable { mutableStateOf(initial) }
-    val valid = ZipTable.isValid(zip)
+    // Never a greyed-out button (hard to read with low vision): tapping too early explains instead.
+    var tooShort by rememberSaveable { mutableStateOf(false) }
+    val shown = if (tooShort) "Enter all five digits of your ZIP." else error
+    val submit: () -> Unit = { if (ZipTable.isValid(zip)) { tooShort = false; onSave(zip) } else { tooShort = true } }
     Scaffold { padding ->
         Column(
             modifier = Modifier
@@ -59,19 +62,18 @@ fun ZipScreen(
             Text("Which ZIP code should the forecast be for?", style = MaterialTheme.typography.bodyLarge)
             OutlinedTextField(
                 value = zip,
-                onValueChange = { typed -> zip = typed.filter { it.isDigit() }.take(5) },
+                onValueChange = { typed -> zip = typed.filter { it.isDigit() }.take(5); tooShort = false },
                 label = { Text("ZIP code") },
                 singleLine = true,
-                isError = error != null,
-                supportingText = error?.let { { Text(it) } },
+                isError = shown != null,
+                supportingText = shown?.let { { Text(it) } },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { if (valid) onSave(zip) }),
+                keyboardActions = KeyboardActions(onDone = { submit() }),
                 colors = neonFieldColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
             Button(
-                onClick = { onSave(zip) },
-                enabled = valid,
+                onClick = submit,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
             ) {
                 Text("Show the forecast", style = MaterialTheme.typography.titleMedium)

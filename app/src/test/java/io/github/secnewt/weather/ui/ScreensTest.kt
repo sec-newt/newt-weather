@@ -2,6 +2,7 @@ package io.github.secnewt.weather.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
@@ -43,8 +44,8 @@ class ScreensTest {
     @Test
     fun weatherDark() {
         weather(dark = true, name = "weather-dark")
-        composeRule.onNodeWithText("82°").assertIsDisplayed()
-        composeRule.onNodeWithText("↑ High 90°").assertIsDisplayed()
+        // The Now card reads as one sentence to a screen reader, so that's what is checked.
+        composeRule.onNodeWithContentDescription("Now 82 degrees, mostly sunny. High 90.").assertIsDisplayed()
         composeRule.onNodeWithText("Flood Warning").assertIsDisplayed()
     }
 
@@ -57,7 +58,7 @@ class ScreensTest {
     @Test
     fun weatherEveningShowsTheLow() {
         weather(dark = true, name = "weather-evening", alerts = false, evening = true)
-        composeRule.onNodeWithText("↓ Low 75°").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Low 75.", substring = true).assertIsDisplayed()
     }
 
     @Test
