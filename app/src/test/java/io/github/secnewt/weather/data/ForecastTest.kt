@@ -46,7 +46,7 @@ class ForecastTest {
 
     @Test
     fun daysPairDayAndNight() {
-        val days = forecast.days()
+        val days = forecast.days(Fixtures.NOON)
         assertEquals(7, days.size)
         assertEquals("Today", days[0].name)
         assertEquals(90, days[0].day!!.temperature)
@@ -54,10 +54,17 @@ class ForecastTest {
     }
 
     @Test
-    fun anEveningListStartsWithTonightAlone() {
-        val evening = forecast.copy(periods = forecast.periods.drop(1))
-        val days = evening.days()
+    fun inTheEveningTheListStartsWithTonight() {
+        // The forecast was saved at noon; by 7:30 PM "Today" has ended and is left out.
+        val days = forecast.days(Fixtures.EVENING)
         assertEquals("Tonight", days[0].name)
         assertEquals(null, days[0].day)
+        assertEquals(75, days[0].night!!.temperature)
+    }
+
+    @Test
+    fun itIsNightAtSevenThirty() {
+        assertTrue(forecast.currentIsDaytime(Fixtures.NOON))
+        assertFalse(forecast.currentIsDaytime(Fixtures.EVENING))
     }
 }

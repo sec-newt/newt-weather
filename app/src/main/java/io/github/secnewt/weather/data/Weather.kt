@@ -75,6 +75,10 @@ data class Forecast(
     fun currentCondition(now: OffsetDateTime): Condition? =
         (hourAt(now) ?: periods.firstOrNull())?.condition
 
+    /** Day or night right now, from this hour's forecast (so the icon shows a moon after dark). */
+    fun currentIsDaytime(now: OffsetDateTime): Boolean =
+        (hourAt(now) ?: periods.firstOrNull { it.end > now })?.isDaytime ?: true
+
     fun currentDescription(now: OffsetDateTime): String =
         hourAt(now)?.shortForecast ?: periods.firstOrNull()?.shortForecast.orEmpty()
 
@@ -87,8 +91,12 @@ data class Forecast(
     /** Hours from the current one onward, for the hourly strip. */
     fun hoursFrom(now: OffsetDateTime): List<Period> = hourly.filter { it.end > now }
 
-    /** The 7-day forecast as days, each with its daytime and night periods. */
-    fun days(): List<Day> {
+    /**
+     * The 7-day forecast as days, each with its daytime and night periods. Periods that have
+     * already ended are left out, so a forecast saved at noon still starts with "Tonight" at 8 PM.
+     */
+    fun days(now: OffsetDateTime): List<Day> {
+        val periods = periods.filter { it.end > now }
         val days = mutableListOf<Day>()
         var i = 0
         while (i < periods.size) {

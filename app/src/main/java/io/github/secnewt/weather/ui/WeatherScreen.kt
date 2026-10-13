@@ -72,7 +72,7 @@ fun WeatherScreen(
                 item { NotificationOffer(onAllowNotifications) }
             }
             item { SectionHeading("Next 7 days") }
-            items(forecast.days(), key = { it.name }) { DayCard(it) }
+            items(forecast.days(now), key = { it.name }) { DayCard(it) }
             item { Footer(forecast, zone, refreshing, status, onRefresh) }
         }
     }
@@ -84,7 +84,7 @@ private fun NowCard(forecast: Forecast, now: OffsetDateTime) {
     val condition = forecast.currentCondition(now)
     val description = forecast.currentDescription(now)
     val highLow = forecast.highLow(now)
-    val isDaytime = forecast.periods.firstOrNull()?.isDaytime ?: true
+    val isDaytime = forecast.currentIsDaytime(now)
     val spoken = buildString {
         append("Now ")
         append(temp?.let { "$it degrees" } ?: "temperature unknown")
