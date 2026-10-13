@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Each permission is also listed, with its reason, in config/allowed-permissions.txt;
          the build fails if any other permission appears. -->
@@ -12,6 +13,10 @@
     <!-- A notification for severe-weather Warnings only. Asked for only when you tap
          "Turn on warnings". -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- WorkManager adds this for long-running "foreground" work. A refresh takes seconds
+         and never runs as foreground work, so it's removed rather than allowed. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
 
     <application
         android:allowBackup="false"
