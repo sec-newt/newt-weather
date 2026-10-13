@@ -78,6 +78,8 @@ dependencies {
     // The Newt look: theme, fonts, shared headers and outlines.
     implementation(libs.newt.ui)
     implementation(libs.androidx.core.ktx)
+    // Background refresh, about every 45 minutes when online.
+    implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)

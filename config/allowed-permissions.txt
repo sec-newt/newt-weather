@@ -1,9 +1,24 @@
 # Every Android permission the installed app may request, one per line.
 # The build fails if the APK asks for anything not listed here, so a new
-# permission (for example internet access, or seeing every installed app
-# through QUERY_ALL_PACKAGES) can never sneak in unnoticed.
+# permission (for example location, or seeing every installed app through
+# QUERY_ALL_PACKAGES) can never sneak in unnoticed.
 #
-# Add each one with a comment above it saying what it's for, in plain words.
+# The forecast from the National Weather Service (api.weather.gov), the only
+# place the app connects to. Newt Weather is the one Newt app with internet,
+# so the others can show the weather while staying offline.
+android.permission.INTERNET
+#
+# A notification for severe-weather Warnings only; asked for when you tap
+# "Turn on warnings".
+android.permission.POST_NOTIFICATIONS
+#
+# Added by WorkManager, which runs the background refresh:
+# - only refresh when the phone is online
+android.permission.ACCESS_NETWORK_STATE
+# - keep the phone awake for the few seconds a refresh takes
+android.permission.WAKE_LOCK
+# - put the refresh schedule back after the phone restarts
+android.permission.RECEIVE_BOOT_COMPLETED
 #
 # Added automatically by AndroidX so the app's own broadcast receivers stay private:
 io.github.secnewt.weather.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION

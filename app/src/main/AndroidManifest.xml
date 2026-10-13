@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- No permissions, and no internet access. Before adding one, add it to
-         config/allowed-permissions.txt with a comment saying why; the build fails otherwise. -->
+    <!-- Each permission is also listed, with its reason, in config/allowed-permissions.txt;
+         the build fails if any other permission appears. -->
+
+    <!-- The forecast comes from the National Weather Service (api.weather.gov), the only
+         place this app connects to. Newt Weather is the only Newt app with internet access,
+         so the others can show the weather while staying offline. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- A notification for severe-weather Warnings only. Asked for only when you tap
+         "Turn on warnings". -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="false"
