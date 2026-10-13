@@ -1,6 +1,7 @@
 package io.github.secnewt.weather.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -58,7 +59,9 @@ class ScreensTest {
     @Test
     fun weatherEveningShowsTheLow() {
         weather(dark = true, name = "weather-evening", alerts = false, evening = true)
-        composeRule.onNodeWithContentDescription("Low 75.", substring = true).assertIsDisplayed()
+        // The Now card (not today's row, which also says it) ends with tonight's low.
+        composeRule.onNode(hasContentDescription("Now ", substring = true) and hasContentDescription("Low 75.", substring = true))
+            .assertIsDisplayed()
     }
 
     @Test
