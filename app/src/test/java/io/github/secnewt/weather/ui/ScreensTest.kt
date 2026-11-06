@@ -11,6 +11,9 @@ import io.github.secnewt.test.newtScreenshot
 import io.github.secnewt.ui.NewtLook
 import io.github.secnewt.ui.NewtLookTheme
 import io.github.secnewt.weather.data.Fixtures
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.performClick
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,9 +40,10 @@ class ScreensTest {
                 zone = zone,
                 refreshing = false,
                 status = null,
-                notificationsAllowed = false,
+                warningAlertsOn = false,
+                notificationsBlocked = false,
                 onRefresh = {},
-                onAllowNotifications = {},
+                onWarningAlertsChange = {},
                 onNotificationSettings = {},
                 editingZip = false,
                 zipError = null,
@@ -114,19 +118,19 @@ class ScreensTest {
 
     @Test
     fun warningsOffDark() {
-        composeRule.newtScreenshot("warnings-off-dark", dark = true) { NotificationsCard(false, {}, {}) }
-        composeRule.onNodeWithText("Turn on warnings").assertIsDisplayed()
+        composeRule.newtScreenshot("warnings-off-dark", dark = true) { WarningAlertsCard(on = false, blocked = false, onChange = {}, onOpenSettings = {}) }
+        composeRule.onNodeWithText("Warning alerts").assertIsOff()
     }
 
     @Test
     fun warningsOnLight() {
-        composeRule.newtScreenshot("warnings-on-light", dark = false) { NotificationsCard(true, {}, {}) }
-        composeRule.onNodeWithText("Notification settings").assertIsDisplayed()
+        composeRule.newtScreenshot("warnings-on-light", dark = false) { WarningAlertsCard(on = true, blocked = false, onChange = {}, onOpenSettings = {}) }
+        composeRule.onNodeWithText("Warning alerts").assertIsOn()
     }
 
     @Test
     fun warningsOffLargeText() =
-        composeRule.newtScreenshot("warnings-off-200pct", dark = true, fontScale = 2f) { NotificationsCard(false, {}, {}) }
+        composeRule.newtScreenshot("warnings-off-200pct", dark = true, fontScale = 2f) { WarningAlertsCard(on = false, blocked = false, onChange = {}, onOpenSettings = {}) }
 
     // The terminal look, as when Newt Home is set to `look terminal`.
     @Test
@@ -156,9 +160,10 @@ class ScreensTest {
         zone = zone,
         refreshing = false,
         status = null,
-        notificationsAllowed = false,
+        warningAlertsOn = false,
+        notificationsBlocked = false,
         onRefresh = {},
-        onAllowNotifications = {},
+        onWarningAlertsChange = {},
         onNotificationSettings = {},
         editingZip = false,
         zipError = null,
@@ -170,5 +175,33 @@ class ScreensTest {
     @Test
     fun loadingFailedDark() = composeRule.newtScreenshot("loading-failed-dark", dark = true) {
         LoadingScreen(status = "Couldn't reach the National Weather Service.", refreshing = false, onRetry = {}, onChangeZip = {})
+    }
+
+    @Test
+    fun warningAlertsSwitchFlips() {
+        var changed: Boolean? = null
+        composeRule.setContent { io.github.secnewt.ui.NewtTheme(darkTheme = true) { WarningAlertsCard(on = false, blocked = false, onChange = { changed = it }, onOpenSettings = {}) } }
+        composeRule.onNodeWithText("Warning alerts").performClick()
+        org.junit.Assert.assertEquals(true, changed)
+    }
+
+    @Test
+    fun warningAlertsOnButBlockedSaysSoAndOffersAFix() {
+        var opened = 0
+        composeRule.newtScreenshot("warnings-blocked-dark", dark = true) {
+            WarningAlertsCard(on = true, blocked = true, onChange = {}, onOpenSettings = { opened++ })
+        }
+        composeRule.onNodeWithText("Android has notifications off for Newt Weather").assertExists()
+        composeRule.onNodeWithText("Fix in settings").performClick()
+        org.junit.Assert.assertEquals(1, opened)
+    }
+
+    @Test
+    fun alertsThenWarningAlertsThenTheForecast() {
+        composeRule.setContent { io.github.secnewt.ui.NewtTheme(darkTheme = true) { WeatherNow() } }
+        val alert = composeRule.onNodeWithText("Flood Warning").fetchSemanticsNode().boundsInRoot
+        val setting = composeRule.onNodeWithText("Warning alerts").fetchSemanticsNode().boundsInRoot
+        org.junit.Assert.assertTrue(setting.top > alert.bottom)
+        composeRule.onNodeWithText("Next 7 days").assertExists()
     }
 }

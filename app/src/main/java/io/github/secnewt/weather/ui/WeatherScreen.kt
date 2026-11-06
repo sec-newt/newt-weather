@@ -1,5 +1,24 @@
 package io.github.secnewt.weather.ui
 
+import io.github.secnewt.ui.NewtTone
+import io.github.secnewt.ui.color
+import io.github.secnewt.ui.newtStripe
+import io.github.secnewt.ui.NewtSettingsCard
+import io.github.secnewt.ui.NewtSwitchRow
+import io.github.secnewt.ui.NewtValueRow
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -56,9 +75,11 @@ fun WeatherScreen(
     zone: ZoneId,
     refreshing: Boolean,
     status: String?,
-    notificationsAllowed: Boolean,
+    /** The Warning alerts switch, and whether Android is blocking the notifications it needs. */
+    warningAlertsOn: Boolean,
+    notificationsBlocked: Boolean,
     onRefresh: () -> Unit,
-    onAllowNotifications: () -> Unit,
+    onWarningAlertsChange: (Boolean) -> Unit,
     onNotificationSettings: () -> Unit,
     editingZip: Boolean,
     zipError: String?,
@@ -66,7 +87,6 @@ fun WeatherScreen(
     onSaveZip: (String) -> Unit,
     onCancelZip: () -> Unit,
 ) {
-    val hasWarning = forecast.alerts.any { it.isWarning }
     // Terminal lines are only list items in the terminal look, so the clean look's spacing
     // stays exactly as it was.
     val terminal = terminalLook()
@@ -87,15 +107,12 @@ fun WeatherScreen(
             if (terminal) item { NewtPromptLine("weather", "now", title = null) }
             item { NowCard(forecast, now) }
             if (terminal && forecast.alerts.isNotEmpty()) item { NewtPromptLine("weather", "alerts", title = null) }
-            items(forecast.alerts, key = { it.id }) { AlertCard(it) }
-            if (hasWarning && !notificationsAllowed) {
-                item(key = "warnings-top") { NotificationsCard(false, onAllowNotifications, onNotificationSettings) }
-            }
+            items(forecast.alerts, key = { it.id }) { AlertRow(it) }
+            item(key = "warning-alerts") { WarningAlertsCard(warningAlertsOn, notificationsBlocked, onWarningAlertsChange, onNotificationSettings) }
             item { NewtPromptLine("weather", "forecast --7d", title = "Next 7 days") }
-            items(forecast.days(now), key = { it.name }) { DayCard(it) }
+            item { ForecastCard(forecast.days(now)) }
             if (terminal) item { NewtPromptLine("weather", "config", title = null) }
             item { Footer(forecast, zone, refreshing, status, onRefresh) }
-            item { NotificationsCard(notificationsAllowed, onAllowNotifications, onNotificationSettings) }
             item {
                 ZipCard(
                     place = forecast.place.label,
@@ -176,82 +193,96 @@ private fun HighLowLabel(highLow: HighLow) {
     )
 }
 
+/**
+ * One alert as a one-line row: a colored stripe, an icon and the alert's name (red for a
+ * Warning, blue for a Watch or advisory), and when it ends. Tap for what to do and the details.
+ */
 @Composable
-private fun AlertCard(alert: Alert) {
+private fun AlertRow(alert: Alert) {
     var open by rememberSaveable(alert.id) { mutableStateOf(false) }
-    val color = if (alert.isWarning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary
-    Card(
-        border = BorderStroke(if (alert.isWarning) 3.dp else 1.5.dp, color),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    val tone = if (alert.isWarning) NewtTone.Danger else NewtTone.Info
+    val color = tone.color()
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clickable(role = Role.Button, onClickLabel = if (open) "Hide details" else "Show details") { open = !open },
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .newtStripe(color)
+            .clickable(role = Role.Button, onClickLabel = if (open) "Hide details" else "Show details") { open = !open }
+            .heightIn(min = 64.dp)
+            .padding(start = 20.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                text = alert.event,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = color,
-                modifier = Modifier.semantics { heading() },
-            )
-            alert.ends?.let { Text("Until ${dayTimeText(it)}", style = MaterialTheme.typography.bodyLarge) }
-            if (open) {
-                if (alert.instruction.isNotBlank()) {
-                    Text("What to do", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(alert.instruction, style = MaterialTheme.typography.bodyLarge)
-                }
-                Text(alert.description, style = MaterialTheme.typography.bodyMedium)
-            } else {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(if (alert.isWarning) Icons.Filled.Warning else Icons.Filled.Info, contentDescription = null, tint = color, modifier = Modifier.size(28.dp))
+            Column(Modifier.weight(1f)) {
                 Text(
-                    "Tap for details",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = alert.event,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = color,
+                    modifier = Modifier.semantics { heading() },
                 )
+                alert.ends?.let { Text("until ${dayTimeText(it)}", style = MaterialTheme.typography.bodyLarge) }
             }
+            Icon(
+                if (open) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (open) {
+            if (alert.instruction.isNotBlank()) {
+                Text("What to do", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(alert.instruction, style = MaterialTheme.typography.bodyLarge)
+            }
+            Text(alert.description, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
 
 /**
- * Warning notifications: always reachable from the bottom of the forecast, so they can be
- * turned on before a warning arrives, and shown near the top too while a warning is active
- * and they're off.
+ * The Warning alerts setting: one ON/OFF row. Before it's on and allowed, the hint says Android
+ * will ask, so the reason is there at the moment it asks. If Android blocks notifications while
+ * it's on, it says so and offers the fix, rather than pretending warnings will arrive.
  */
 @Composable
-fun NotificationsCard(allowed: Boolean, onTurnOn: () -> Unit, onOpenSettings: () -> Unit) {
-    Card(
-        border = neonOutline(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        modifier = Modifier.fillMaxWidth(),
+fun WarningAlertsCard(on: Boolean, blocked: Boolean, onChange: (Boolean) -> Unit, onOpenSettings: () -> Unit) {
+    NewtSettingsCard("Severe weather", icon = Icons.Filled.Notifications) {
+        NewtSwitchRow(
+            "Warning alerts",
+            checked = on,
+            onCheckedChange = onChange,
+            hint = if (on) "Tornado · storm · flood · freeze" else "Tornado · storm · flood · freeze. Android asks first",
+        )
+        if (on && blocked) {
+            Text(
+                "Android has notifications off for Newt Weather",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                color = NewtTone.Danger.color(),
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+            )
+            NewtValueRow("Fix in settings", null, onClick = onOpenSettings, tone = NewtTone.Danger)
+        }
+    }
+}
+
+/** The 7 days as one card of compact rows, so they fit on the first screen. */
+@Composable
+private fun ForecastCard(days: List<Day>) {
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .border(neonOutline(), shape),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            CardTitle("Warning notifications")
-            if (allowed) {
-                Text(
-                    "On. You'll get a notification when the National Weather Service issues a " +
-                        "warning for your ZIP. Watches and advisories stay quiet.",
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                OutlinedButton(
-                    onClick = onOpenSettings,
-                    border = neonOutline(),
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                ) {
-                    Text("Notification settings", style = MaterialTheme.typography.titleMedium)
-                }
-            } else {
-                Text(
-                    "Off. Turn on to get a notification when the National Weather Service issues a " +
-                        "warning for your ZIP (tornado, severe thunderstorm, flood, freeze). Watches " +
-                        "and advisories stay quiet.",
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Button(onClick = onTurnOn, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-                    Text("Turn on warnings", style = MaterialTheme.typography.titleMedium)
-                }
-            }
+        days.forEachIndexed { index, day ->
+            if (index > 0) HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.outlineVariant)
+            DayCard(day)
         }
     }
 }
@@ -267,21 +298,20 @@ private fun DayCard(day: Day) {
         day.night?.let { append(" Low ${it.temperature}.") }
         if (rain != null && rain > 0) append(" $rain percent chance of rain.")
     }
-    Card(
-        border = neonOutline(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        modifier = Modifier
+    Column(
+        Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .clickable(role = Role.Button, onClickLabel = if (open) "Hide details" else "Show details") { open = !open },
+            .clickable(role = Role.Button, onClickLabel = if (open) "Hide details" else "Show details") { open = !open }
+            .padding(horizontal = 14.dp, vertical = 10.dp),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.clearAndSetSemantics { contentDescription = spoken },
             ) {
-                WeatherIcon(main.condition, main.isDaytime, size = 40.dp, tint = MaterialTheme.colorScheme.primary)
+                WeatherIcon(main.condition, main.isDaytime, size = 34.dp, tint = MaterialTheme.colorScheme.primary)
                 Column(Modifier.weight(1f)) {
                     Text(day.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Text(main.shortForecast, style = MaterialTheme.typography.bodyMedium)
