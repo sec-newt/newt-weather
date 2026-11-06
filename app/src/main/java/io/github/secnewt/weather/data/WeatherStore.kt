@@ -29,6 +29,13 @@ class WeatherStore(context: Context) {
         set(value) { prefs.edit().putBoolean(KEY_ASKED, value).apply() }
 
     /** The points answer and station for a ZIP rarely change, so they're reused until the ZIP does. */
+    /** The Warning alerts switch, or null if it's never been touched (then it follows the permission). */
+    var warningAlerts: Boolean?
+        get() = if (prefs.contains(KEY_WARNING_ALERTS)) prefs.getBoolean(KEY_WARNING_ALERTS, false) else null
+        set(value) {
+            if (value == null) prefs.edit().remove(KEY_WARNING_ALERTS).apply() else prefs.edit().putBoolean(KEY_WARNING_ALERTS, value).apply()
+        }
+
     fun cachedPoints(zip: String): Pair<String, String?>? {
         if (prefs.getString(KEY_POINTS_ZIP, null) != zip) return null
         val points = read(POINTS) ?: return null
@@ -79,6 +86,7 @@ class WeatherStore(context: Context) {
         const val KEY_ZIP = "zip"
         const val KEY_NOTIFIED = "notified_warnings"
         const val KEY_ASKED = "asked_notifications"
+        const val KEY_WARNING_ALERTS = "warning_alerts"
         const val KEY_POINTS_ZIP = "points_zip"
         const val KEY_STATION = "station"
         const val KEY_FORECAST_ZIP = "forecast_zip"

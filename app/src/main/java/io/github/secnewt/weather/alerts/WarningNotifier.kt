@@ -27,7 +27,7 @@ class WarningNotifier(private val context: Context, private val store: WeatherSt
         // Forget warnings NOAA has dropped, so the list doesn't grow forever.
         store.notifiedWarnings = already.intersect(warnings.map { it.id }.toSet())
         val fresh = warnings.filter { it.id !in already }
-        if (fresh.isEmpty() || !allowed(context)) return
+        if (fresh.isEmpty() || !WarningAlerts.shouldNotify(store.warningAlerts, allowed(context))) return
         createChannel(context)
         val open = PendingIntent.getActivity(
             context, 0,

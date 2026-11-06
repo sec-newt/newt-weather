@@ -17,6 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import io.github.secnewt.ui.NewtLookTheme
 import io.github.secnewt.ui.NewtTheme
 import io.github.secnewt.ui.rememberFamilyLook
+import io.github.secnewt.weather.alerts.WarningAlerts
 import io.github.secnewt.weather.alerts.WarningNotifier
 import io.github.secnewt.weather.data.Forecast
 import io.github.secnewt.weather.data.RefreshException
@@ -46,6 +47,8 @@ class MainActivity : ComponentActivity() {
     private var refreshing by mutableStateOf(false)
     private var status by mutableStateOf<String?>(null)
     private var notificationsAllowed by mutableStateOf(false)
+    /** The Warning alerts switch as stored: null until it's first touched. */
+    private var warningAlertsStored by mutableStateOf<Boolean?>(null)
 
     private val askNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         notificationsAllowed = granted
@@ -71,6 +74,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         notificationsAllowed = WarningNotifier.allowed(this)
+        warningAlertsStored = store.warningAlerts
         val last = forecast?.fetchedAt
         if (zip != null && (last == null || Duration.between(last, Instant.now()) > STALE)) refresh()
     }
@@ -94,9 +98,10 @@ class MainActivity : ComponentActivity() {
                 zone = ZoneId.systemDefault(),
                 refreshing = refreshing,
                 status = status,
-                notificationsAllowed = notificationsAllowed,
+                warningAlertsOn = WarningAlerts.switchOn(warningAlertsStored, notificationsAllowed),
+                notificationsBlocked = !notificationsAllowed,
                 onRefresh = ::refresh,
-                onAllowNotifications = ::turnOnWarnings,
+                onWarningAlertsChange = ::setWarningAlerts,
                 onNotificationSettings = ::openNotificationSettings,
                 editingZip = editingZip,
                 zipError = zipError,
@@ -111,6 +116,13 @@ class MainActivity : ComponentActivity() {
      * Asks for the notification permission. After two "Don't allow"s Android stops asking,
      * so from then on this opens the app's notification settings instead of doing nothing.
      */
+    /** The switch always flips. Turning it on asks Android for permission if it's needed. */
+    private fun setWarningAlerts(on: Boolean) {
+        store.warningAlerts = on
+        warningAlertsStored = on
+        if (on && !notificationsAllowed) turnOnWarnings()
+    }
+
     private fun turnOnWarnings() {
         val permission = Manifest.permission.POST_NOTIFICATIONS
         if (store.askedNotifications && !shouldShowRequestPermissionRationale(permission)) {
