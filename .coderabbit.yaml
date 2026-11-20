@@ -1,0 +1,63 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit AI review. Tuned to be quiet: real bugs, security, privacy and
+# accessibility, not style nitpicks. Delete this file and remove the repo from
+# the CodeRabbit GitHub App to turn it off.
+language: en-US
+tone_instructions: "Be brief and direct. Skip praise. Only comment when something is wrong or risky."
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  collapse_walkthrough: true
+  review_details: false
+  changed_files_summary: false
+  sequence_diagrams: false
+  estimate_code_review_effort: false
+  related_issues: false
+  related_prs: false
+  suggested_labels: false
+  suggested_reviewers: false
+  in_progress_fortune: false
+  poem: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    ignore_title_keywords: ["WIP", "[skip review]"]
+    ignore_usernames: ["dependabot[bot]"]
+
+  path_filters:
+    - "!**/build/**"
+    - "!gradle/wrapper/**"
+
+  path_instructions:
+    - path: "**/*.kt"
+      instructions: |
+        This is a private weather app for GrapheneOS. Its only network use is api.weather.gov, and only the coordinates from the ZIP go there. Focus on, in order:
+        1. Privacy: flag any new network destination, and anything beyond the
+           coordinates sent to api.weather.gov. The ZIP and place name must
+           never reach logs, and must never be included in the forecast
+           shared through share/ForecastProvider, which must stay limited to
+           Newt-signed apps and read-only.
+        2. Warnings must not be missed: flag alert parsing or Warning
+           notification changes without tests, and an old forecast that could
+           look current instead of showing its age. Also flag main-thread
+           network or disk work and coroutine cancellation bugs.
+        3. Accessibility: the primary user has low vision. Flag Compose UI
+           missing contentDescription/semantics, buttons under 56dp or rows
+           under 48dp, text under 16sp, text colors under 7:1 contrast,
+           meaning carried by color alone, duplicate screen-reader labels,
+           and animations that ignore the system "remove animations" setting.
+        Do not comment on naming, formatting, or minor style.
+    - path: "**/AndroidManifest.xml"
+      instructions: |
+        Flag any new permission, exported component, or intent filter,
+        and check it against config/allowed-permissions.txt.
+    - path: ".github/workflows/**"
+      instructions: |
+        Flag unpinned actions (must be pinned to a full commit SHA), widened
+        token permissions, and pull_request_target usage.
+
+chat:
+  auto_reply: true
