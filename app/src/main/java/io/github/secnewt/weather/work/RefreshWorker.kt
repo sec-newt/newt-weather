@@ -22,8 +22,8 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         if (store.active == null) return Result.success()
         return try {
             val forecast = WeatherRepository(applicationContext).refresh()
-            // Switched to another place meanwhile: these warnings wait until it's showing again.
-            if (store.active?.key == forecast.location.key) WarningNotifier(applicationContext, store).notifyNew(forecast)
+            // Skips itself if another place is showing by now.
+            WarningNotifier(applicationContext, store).notifyNew(forecast)
             Result.success()
         } catch (e: RefreshException) {
             // The next scheduled run tries again; no need to hammer NOAA.

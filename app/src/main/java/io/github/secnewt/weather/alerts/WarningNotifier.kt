@@ -24,8 +24,11 @@ class WarningNotifier(private val context: Context, private val store: WeatherSt
     /** Notifies about the forecast's new Warnings, named with its place ("Tornado Warning · Paris, TX"). */
     // One at a time across the app: the screen and the background refresh mustn't both send one warning.
     fun notifyNew(forecast: Forecast): Unit = synchronized(LOCK) {
-        val warnings = forecast.alerts.filter { it.isWarning }
         val place = forecast.location
+        // Only the place showing sends warnings. A place switched away from (or removed) while
+        // this waited keeps its history as it was, so its warnings still come if it shows again.
+        if (store.active?.key != place.key) return@synchronized
+        val warnings = forecast.alerts.filter { it.isWarning }
         val already = store.notifiedWarnings(place)
         // Forget warnings NOAA has dropped, so the list doesn't grow forever.
         store.saveNotifiedWarnings(place, already.intersect(warnings.map { it.id }.toSet()))

@@ -49,12 +49,31 @@ class WarningNotifierTest {
         val notifier = WarningNotifier(app, store)
         val okc = Fixtures.forecast()
         val manager = app.getSystemService(NotificationManager::class.java)
+        store.activate(Fixtures.OKC)
         notifier.notifyNew(okc)
         assertTrue(shadowOf(manager).allNotifications.isNotEmpty())
         manager.cancelAll() // swiped away
         // Paris has no alerts; back in Oklahoma City the same warnings are still up, and stay quiet.
+        store.activate(elsewhere)
         notifier.notifyNew(okc.copy(location = elsewhere, alerts = emptyList()))
+        store.activate(Fixtures.OKC)
         notifier.notifyNew(okc)
         assertTrue(shadowOf(manager).allNotifications.isEmpty())
+    }
+
+    @Test
+    fun aPlaceNotShowingWaitsUntilItShows() {
+        shadowOf(app).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        val elsewhere = Location("Paris, TX", null, Coordinates("33.67", "-95.55"))
+        val store = WeatherStore(app).apply { warningAlerts = true; add(Fixtures.OKC); add(elsewhere) }
+        val notifier = WarningNotifier(app, store)
+        val manager = app.getSystemService(NotificationManager::class.java)
+        // Paris is showing: Oklahoma City's warnings (from a refresh that finished late) stay quiet.
+        notifier.notifyNew(Fixtures.forecast())
+        assertTrue(shadowOf(manager).allNotifications.isEmpty())
+        // Showing Oklahoma City again, they come.
+        store.activate(Fixtures.OKC)
+        notifier.notifyNew(Fixtures.forecast())
+        assertTrue(shadowOf(manager).allNotifications.isNotEmpty())
     }
 }

@@ -47,6 +47,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -69,8 +70,11 @@ import io.github.secnewt.weather.data.Alert
 import io.github.secnewt.weather.data.Day
 import io.github.secnewt.weather.data.Forecast
 import io.github.secnewt.weather.data.HighLow
+import java.time.Duration
+import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.ZoneId
+import kotlinx.coroutines.delay
 
 /** The main screen: now, alerts, and the 7-day forecast. */
 @Composable
@@ -336,9 +340,17 @@ private fun DayCard(day: Day) {
 
 @Composable
 private fun Footer(forecast: Forecast, zone: ZoneId, refreshing: Boolean, status: String?, onRefresh: () -> Unit) {
+    // Turns over at midnight, so a screen left open overnight adds the date to "Updated".
+    val today by produceState(LocalDate.now(zone), zone) {
+        while (true) {
+            val next = LocalDate.now(zone).plusDays(1).atStartOfDay(zone)
+            delay(Duration.between(java.time.ZonedDateTime.now(zone), next).toMillis() + 1_000)
+            value = LocalDate.now(zone)
+        }
+    }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            "From the National Weather Service. Updated ${updatedText(forecast.fetchedAt.atZone(zone).toOffsetDateTime(), java.time.LocalDate.now(zone))}.",
+            "From the National Weather Service. Updated ${updatedText(forecast.fetchedAt.atZone(zone).toOffsetDateTime(), today)}.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
