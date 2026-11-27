@@ -73,3 +73,13 @@ private val DAY_TIME = DateTimeFormatter.ofPattern("EEE h:mm a", Locale.US)
 fun timeText(at: OffsetDateTime): String = at.format(TIME)
 
 fun dayTimeText(at: OffsetDateTime): String = at.format(DAY_TIME)
+
+private val DATE_TIME = DateTimeFormatter.ofPattern("MMM d 'at' h:mm a", Locale.US)
+private val YEAR_DATE_TIME = DateTimeFormatter.ofPattern("MMM d, yyyy 'at' h:mm a", Locale.US)
+
+/** "9:00 AM" today, "Nov 25 at 9:00 AM" before today (with the year if it was another year), so an old forecast never looks current. */
+fun updatedText(at: OffsetDateTime, today: java.time.LocalDate): String = when {
+    at.toLocalDate() == today -> at.format(TIME)
+    at.year == today.year -> at.format(DATE_TIME)
+    else -> at.format(YEAR_DATE_TIME)
+}

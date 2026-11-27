@@ -56,7 +56,9 @@ data class HighLow(val temperature: Int, val isHigh: Boolean)
 
 /** Everything the screens need, from the last successful refresh. */
 data class Forecast(
-    val zip: String,
+    /** The saved place this forecast is for. */
+    val location: Location,
+    /** Where NOAA says the forecast is for. */
     val place: Place,
     val observation: Observation?,
     /** The 7-day forecast, day and night periods in order. */

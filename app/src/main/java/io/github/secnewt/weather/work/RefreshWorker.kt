@@ -14,14 +14,16 @@ import io.github.secnewt.weather.data.WeatherRepository
 import io.github.secnewt.weather.data.WeatherStore
 import java.util.concurrent.TimeUnit
 
-/** Refreshes the forecast in the background and notifies about new warnings. */
+/** Refreshes the forecast for the place showing in the background and notifies about new warnings. */
 class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        if (WeatherStore(applicationContext).zip == null) return Result.success()
+        val store = WeatherStore(applicationContext)
+        if (store.active == null) return Result.success()
         return try {
             val forecast = WeatherRepository(applicationContext).refresh()
-            WarningNotifier(applicationContext).notifyNew(forecast.alerts)
+            // Skips itself if another place is showing by now.
+            WarningNotifier(applicationContext, store).notifyNew(forecast)
             Result.success()
         } catch (e: RefreshException) {
             // The next scheduled run tries again; no need to hammer NOAA.

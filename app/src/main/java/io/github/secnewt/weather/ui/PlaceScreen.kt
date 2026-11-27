@@ -24,25 +24,33 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import io.github.secnewt.ui.NewtButton
 import io.github.secnewt.ui.neonFieldColors
 import io.github.secnewt.ui.neonOutline
 import io.github.secnewt.ui.newtContainerColor
-import io.github.secnewt.weather.data.ZipTable
+import io.github.secnewt.weather.data.CitySearch
+import io.github.secnewt.weather.data.Location
 
-/**
- * The first-run screen, and the fallback when no forecast has arrived yet. Once there's a
- * forecast, the ZIP is changed from the card at the bottom of the forecast instead.
- * [onCancel] is null the first time, when there's nothing to go back to.
- */
+/** What the last search in the place box found: a problem to show, or places to choose from. */
+data class PlaceSearch(
+    val error: String? = null,
+    val choices: List<Location> = emptyList(),
+    /** More matched than [choices] shows. */
+    val more: Boolean = false,
+)
+
+/** The first-run screen: which place the forecast should be for. */
 @Composable
-fun ZipScreen(
-    initial: String,
-    error: String?,
-    onSave: (String) -> Unit,
-    onCancel: (() -> Unit)?,
+fun PlaceScreen(
+    search: PlaceSearch,
+    onSearch: (String) -> Unit,
+    onPick: (Location) -> Unit,
+    onTyped: () -> Unit,
 ) {
     Scaffold(containerColor = newtContainerColor()) { padding ->
         Column(
@@ -59,42 +67,66 @@ fun ZipScreen(
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.semantics { heading() },
             )
-            Text("Which ZIP code should the forecast be for?", style = MaterialTheme.typography.bodyLarge)
-            ZipEntry(initial, error, saveLabel = "Show the forecast", onSave = onSave, onCancel = onCancel)
+            Text("Which city or ZIP code should the forecast be for?", style = MaterialTheme.typography.bodyLarge)
+            PlaceEntry(search, saveLabel = "Show the forecast", onSearch = onSearch, onPick = onPick, onTyped = onTyped, onCancel = null)
             PrivacyNote()
         }
     }
 }
 
-/** The ZIP box with its Save (and optional Cancel) button, shared by the screen and the card. */
+/**
+ * The "City or ZIP code" box and its button, shared by the first-run screen and the Places
+ * card. When a name matches more than one place (Springfield), each one is a button to pick.
+ */
 @Composable
-fun ZipEntry(
-    initial: String,
-    error: String?,
+fun PlaceEntry(
+    search: PlaceSearch,
     saveLabel: String,
-    onSave: (String) -> Unit,
+    onSearch: (String) -> Unit,
+    onPick: (Location) -> Unit,
+    onTyped: () -> Unit,
     onCancel: (() -> Unit)?,
 ) {
-    var zip by rememberSaveable { mutableStateOf(initial) }
-    // Never a greyed-out button (hard to read with low vision): tapping too early explains instead.
-    var tooShort by rememberSaveable { mutableStateOf(false) }
-    val shown = if (tooShort) "Enter all five digits of your ZIP." else error
-    val submit: () -> Unit = { if (ZipTable.isValid(zip)) { tooShort = false; onSave(zip) } else { tooShort = true } }
+    var query by rememberSaveable { mutableStateOf("") }
+    val submit = { onSearch(query) }
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         OutlinedTextField(
-            value = zip,
-            onValueChange = { typed -> zip = typed.filter { it.isDigit() }.take(5); tooShort = false },
-            label = { Text("ZIP code") },
+            value = query,
+            onValueChange = { typed -> query = typed.take(MAX_LENGTH); onTyped() },
+            label = { Text("City or ZIP code") },
+            placeholder = { Text("Paris, TX or 75460") },
             singleLine = true,
-            isError = shown != null,
-            supportingText = shown?.let { { Text(it) } },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { submit() }),
+            isError = search.error != null,
+            supportingText = search.error?.let { { Text(it) } },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Text,
+                capitalization = KeyboardCapitalization.Words,
+                imeAction = ImeAction.Search,
+            ),
+            keyboardActions = KeyboardActions(onSearch = { submit() }),
             colors = neonFieldColors(),
             modifier = Modifier.fillMaxWidth(),
         )
+        // Never a greyed-out button (hard to read with low vision): tapping too early explains instead.
         Button(onClick = submit, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
             Text(saveLabel, style = MaterialTheme.typography.titleMedium)
+        }
+        if (search.choices.isNotEmpty()) {
+            Text(
+                "Which one?",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.semantics { heading() },
+            )
+            search.choices.forEach { place ->
+                NewtButton(place.name, onClick = { onPick(place) }, modifier = Modifier.fillMaxWidth())
+            }
+            if (search.more) {
+                Text(
+                    "Showing the first ${CitySearch.LIMIT}. Add the state to find the right one, like Springfield, IL.",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
         }
         if (onCancel != null) {
             OutlinedButton(
@@ -108,11 +140,13 @@ fun ZipEntry(
     }
 }
 
+private const val MAX_LENGTH = 60
+
 @Composable
 fun PrivacyNote() {
     Text(
-        "Your ZIP stays on this phone. Only map coordinates for it are sent to the " +
-            "National Weather Service, to get the forecast.",
+        "What you type stays on this phone: it's looked up in a table built into the app. Only " +
+            "map coordinates go to the National Weather Service, to get the forecast.",
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )

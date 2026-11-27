@@ -11,7 +11,11 @@ next to every icon, following the [house style](NEWT_STYLE.md).
 
 - **Now:** the temperature from the nearest weather station, today's high or tonight's low
   (↑ warm / ↓ cool colors), and the conditions with an icon.
-- **Alerts:** NOAA watches, warnings and advisories for your ZIP, with what to do. A
+- **Places:** type a city ("Paris, TX") or a ZIP. Save as many places as you like in the
+  **Places** card at the bottom, and tap one to show its forecast. If a name fits more than one
+  town (Springfield), you pick from a list. The place showing is the one Newt Home shows and
+  the one warnings come from.
+- **Alerts:** NOAA watches, warnings and advisories for the place showing, with what to do. A
   notification only for **Warnings**, and only if you turn it on.
 - **Next 7 days:** each day's high, low, chance of rain and icon; tap a day for NOAA's
   full written forecast and the wind.
@@ -20,8 +24,8 @@ next to every icon, following the [house style](NEWT_STYLE.md).
 
 ## Privacy
 
-- **Your ZIP stays on the phone.** It's turned into map coordinates using a Census Bureau
-  table built into the app, so no location permission and no lookup service. Only those
+- **Your places stay on the phone.** A city or ZIP is turned into map coordinates using
+  Census Bureau tables built into the app, so no location permission and no lookup service. Only those
   coordinates go to the National Weather Service, to get the forecast.
 - The only place the app connects to is `api.weather.gov`. No ads, analytics, Google Play
   Services or accounts.
