@@ -20,6 +20,17 @@ screen while staying offline itself. Follows [NEWT_STYLE.md](NEWT_STYLE.md).
   the app asks for itself; anything added by libraries is listed and explained in
   `config/allowed-permissions.txt`.
 
+## Places (added 2026-11-27)
+
+- Type a **city** ("Paris, TX", "Paris tx", "Paris, Texas") or a ZIP. City names come
+  from a second built-in Census table (the places gazetteer: cities, towns, villages and
+  census-designated places, public domain; `scripts/update-city-table.sh`), so city lookup
+  stays offline too. A name that fits several towns shows a list to pick from.
+- **Several saved places, one showing.** Only the place showing is refreshed in the background,
+  shown on Newt Home, and sends Warning notifications. Each place keeps its last forecast, so
+  switching back shows it at once while a fresh one loads.
+- An existing single ZIP becomes the first saved place on update, forecast and all.
+
 ## On the home screen (Newt Home, stage 3)
 
 - Next to the date: **current temperature / today's high or tonight's low**, whichever
@@ -35,7 +46,7 @@ screen while staying offline itself. Follows [NEWT_STYLE.md](NEWT_STYLE.md).
 
 - Current conditions, active alerts, and the 7-day forecast (day and night periods)
   with more detail: chance of rain, wind, humidity, NOAA's written forecast.
-- ZIP setting.
+- Places: saved cities and ZIPs, one showing at a time (added 2026-11-27; see below).
 
 ## Stages (each its own pull request)
 

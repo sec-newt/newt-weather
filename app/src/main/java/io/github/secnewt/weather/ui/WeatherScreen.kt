@@ -32,6 +32,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -41,6 +43,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -81,19 +86,23 @@ fun WeatherScreen(
     onRefresh: () -> Unit,
     onWarningAlertsChange: (Boolean) -> Unit,
     onNotificationSettings: () -> Unit,
-    editingZip: Boolean,
-    zipError: String?,
-    onEditZip: () -> Unit,
-    onSaveZip: (String) -> Unit,
-    onCancelZip: () -> Unit,
+    /** Whether the Places card is open for adding a place (it's scrolled into view then). */
+    addingPlace: Boolean,
+    /** The Places card, last on the screen. */
+    places: @Composable () -> Unit,
 ) {
     // Terminal lines are only list items in the terminal look, so the clean look's spacing
     // stays exactly as it was.
     val terminal = terminalLook()
-    val list = rememberLazyListState()
-    // Opening the ZIP card from the title brings it into view.
-    LaunchedEffect(editingZip) {
-        if (editingZip) list.animateScrollToItem(list.layoutInfo.totalItemsCount - 1)
+    // A new list for each place, so switching places starts at the top: its Now and alerts first.
+    val list = key(forecast.location.key) { rememberLazyListState() }
+    // Tapping the title, or opening "Add a place", brings the Places card into view.
+    var jumps by remember { mutableIntStateOf(0) }
+    LaunchedEffect(jumps) {
+        if (jumps > 0) list.animateScrollToItem(list.layoutInfo.totalItemsCount - 1)
+    }
+    LaunchedEffect(addingPlace) {
+        if (addingPlace) list.animateScrollToItem(list.layoutInfo.totalItemsCount - 1)
     }
     Scaffold(containerColor = newtContainerColor()) { padding ->
         LazyColumn(
@@ -102,7 +111,7 @@ fun WeatherScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            item { PlaceTitle(forecast.place.label.ifEmpty { "ZIP ${forecast.zip}" }, onEditZip) }
+            item { PlaceTitle(forecast.location.label, onClick = { jumps++ }) }
             // Terminal lines above each section in the terminal look (nothing in the clean one).
             if (terminal) item { NewtPromptLine("weather", "now", title = null) }
             item { NowCard(forecast, now) }
@@ -113,24 +122,14 @@ fun WeatherScreen(
             item { ForecastCard(forecast.days(now)) }
             if (terminal) item { NewtPromptLine("weather", "config", title = null) }
             item { Footer(forecast, zone, refreshing, status, onRefresh) }
-            item {
-                ZipCard(
-                    place = forecast.place.label,
-                    zip = forecast.zip,
-                    editing = editingZip,
-                    error = zipError,
-                    onEdit = onEditZip,
-                    onSave = onSaveZip,
-                    onCancel = onCancelZip,
-                )
-            }
+            item(key = "places") { places() }
         }
     }
 }
 
-/** The place name; tapping it is a shortcut to the ZIP card at the bottom. */
+/** The place name; tapping it is a shortcut to the Places card at the bottom. */
 @Composable
-private fun PlaceTitle(title: String, onEditZip: () -> Unit) {
+private fun PlaceTitle(title: String, onClick: () -> Unit) {
     Text(
         text = title,
         style = MaterialTheme.typography.headlineMedium,
@@ -138,7 +137,7 @@ private fun PlaceTitle(title: String, onEditZip: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .clickable(role = Role.Button, onClickLabel = "Change ZIP", onClick = onEditZip)
+            .clickable(role = Role.Button, onClickLabel = "Go to Places", onClick = onClick)
             .semantics { heading() }
             .padding(vertical = 8.dp),
     )
@@ -355,12 +354,21 @@ private fun Footer(forecast: Forecast, zone: ZoneId, refreshing: Boolean, status
     }
 }
 
-/** Shown until the first forecast arrives, or if it can't. */
+/**
+ * Shown until a place's first forecast arrives, or if it can't, with the Places card so
+ * another place is one tap away.
+ */
 @Composable
-fun LoadingScreen(status: String?, refreshing: Boolean, onRetry: () -> Unit, onChangeZip: () -> Unit) {
+fun LoadingScreen(
+    placeName: String,
+    status: String?,
+    refreshing: Boolean,
+    onRetry: () -> Unit,
+    places: @Composable () -> Unit,
+) {
     Scaffold(containerColor = newtContainerColor()) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),
+            modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Text(
@@ -369,6 +377,7 @@ fun LoadingScreen(status: String?, refreshing: Boolean, onRetry: () -> Unit, onC
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.semantics { heading() },
             )
+            Text(placeName, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Text(
                 status ?: "Getting the forecast…",
                 style = MaterialTheme.typography.bodyLarge,
@@ -377,9 +386,7 @@ fun LoadingScreen(status: String?, refreshing: Boolean, onRetry: () -> Unit, onC
             Button(onClick = onRetry, enabled = !refreshing, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
                 Text(if (refreshing) "Updating…" else "Try again", style = MaterialTheme.typography.titleMedium)
             }
-            OutlinedButton(onClick = onChangeZip, border = neonOutline(), modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-                Text("Change ZIP", style = MaterialTheme.typography.titleMedium)
-            }
+            places()
         }
     }
 }

@@ -98,10 +98,10 @@ class ForecastShareTest {
 
     private fun saveFixtures() {
         val store = WeatherStore(context)
-        store.zip = "73102"
-        store.savePoints("73102", Fixtures.read("points.json"), "KOKC")
+        store.add(Fixtures.OKC)
+        store.savePoints(Fixtures.OKC, Fixtures.read("points.json"), "KOKC")
         store.save(
-            "73102", Fixtures.read("forecast.json"), Fixtures.read("hourly.json"),
+            Fixtures.OKC, Fixtures.read("forecast.json"), Fixtures.read("hourly.json"),
             Fixtures.read("observation.json"), Fixtures.read("alerts.json"), Instant.parse("2026-10-13T16:25:00Z"),
         )
     }

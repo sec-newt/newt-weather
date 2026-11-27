@@ -12,7 +12,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import io.github.secnewt.weather.MainActivity
 import io.github.secnewt.weather.R
-import io.github.secnewt.weather.data.Alert
+import io.github.secnewt.weather.data.Forecast
 import io.github.secnewt.weather.data.WeatherStore
 
 /**
@@ -21,11 +21,13 @@ import io.github.secnewt.weather.data.WeatherStore
  */
 class WarningNotifier(private val context: Context, private val store: WeatherStore = WeatherStore(context)) {
 
-    fun notifyNew(alerts: List<Alert>) {
-        val warnings = alerts.filter { it.isWarning }
-        val already = store.notifiedWarnings
+    /** Notifies about the forecast's new Warnings, named with its place ("Tornado Warning · Paris, TX"). */
+    fun notifyNew(forecast: Forecast) {
+        val warnings = forecast.alerts.filter { it.isWarning }
+        val place = forecast.location
+        val already = store.notifiedWarnings(place)
         // Forget warnings NOAA has dropped, so the list doesn't grow forever.
-        store.notifiedWarnings = already.intersect(warnings.map { it.id }.toSet())
+        store.saveNotifiedWarnings(place, already.intersect(warnings.map { it.id }.toSet()))
         val fresh = warnings.filter { it.id !in already }
         if (fresh.isEmpty() || !WarningAlerts.shouldNotify(store.warningAlerts, allowed(context))) return
         createChannel(context)
@@ -38,7 +40,7 @@ class WarningNotifier(private val context: Context, private val store: WeatherSt
         fresh.forEach { alert ->
             val notification = NotificationCompat.Builder(context, CHANNEL)
                 .setSmallIcon(R.drawable.ic_wx_warning)
-                .setContentTitle(alert.event)
+                .setContentTitle("${alert.event} · ${forecast.location.label}")
                 .setContentText(alert.headline)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(alert.instruction.ifBlank { alert.headline }))
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -52,7 +54,7 @@ class WarningNotifier(private val context: Context, private val store: WeatherSt
                 manager.notify(alert.id.hashCode(), notification)
             }
         }
-        store.notifiedWarnings = store.notifiedWarnings + fresh.map { it.id }
+        store.saveNotifiedWarnings(place, store.notifiedWarnings(place) + fresh.map { it.id })
     }
 
     companion object {
@@ -64,7 +66,7 @@ class WarningNotifier(private val context: Context, private val store: WeatherSt
 
         fun createChannel(context: Context) {
             val channel = NotificationChannel(CHANNEL, "Severe weather warnings", NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "Tornado, severe thunderstorm, flood and other NOAA warnings for your ZIP."
+                description = "Tornado, severe thunderstorm, flood and other NOAA warnings for the place showing in the app."
             }
             context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
         }

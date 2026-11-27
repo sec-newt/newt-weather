@@ -27,10 +27,11 @@ the Newt packages (a 401), the GitHub login needs `read:packages`: ask the owner
 
 ## Rules that are easy to break
 
-- **The internet is only for api.weather.gov**, and only the coordinates from the ZIP go
-  there. A new server needs the owner's OK and a README line.
+- **The internet is only for api.weather.gov**, and only the coordinates of a saved place
+  (from the built-in ZIP and city tables) go there. Place lookup never goes online. A new
+  server needs the owner's OK and a README line.
 - **The forecast it shares** (`share/ForecastProvider`) goes only to Newt-signed apps, and
-  never includes the ZIP or the place.
+  never includes the ZIP, city or place name.
 - **7:1 contrast** for every text color, **no text under 16sp**, buttons at least 56dp
   and rows at least 48dp tall, words next to icons. Must work at 200% text size and with
   TalkBack, and no two things on a screen read out the same.

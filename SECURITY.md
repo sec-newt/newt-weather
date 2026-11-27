@@ -14,8 +14,8 @@ This is a one-person hobby project, so replies may take a few days.
   only). Every request is checked to be a NOAA link before it's made. The only
   permissions are the ones listed in `config/allowed-permissions.txt`, each with a
   reason; a check in every build fails if any other permission is added.
-- **No location permission.** The ZIP is converted to coordinates with a table
-  built into the app, so the ZIP never leaves the phone.
+- **No location permission.** A city or ZIP is converted to coordinates with Census
+  tables built into the app, so what you type never leaves the phone.
 - **Data stays private.** The app's data lives in its private storage and is
   excluded from backups.
 

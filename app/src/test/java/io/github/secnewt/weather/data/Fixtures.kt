@@ -14,8 +14,11 @@ object Fixtures {
     /** 7:30 PM the same day: the forecast's "Tonight" period. */
     val EVENING: OffsetDateTime = OffsetDateTime.parse("2026-10-13T19:30:00-05:00")
 
+    /** Oklahoma City, saved by its ZIP (and since named by NOAA). */
+    val OKC = Location("Oklahoma City, OK", "73102", Coordinates("35.4707", "-97.5191"))
+
     fun forecast(alerts: Boolean = true): Forecast = Forecast(
-        zip = "73102",
+        location = OKC,
         place = NoaaParser.points(read("points.json")).place,
         observation = NoaaParser.observation(read("observation.json")),
         periods = NoaaParser.periods(read("forecast.json")),

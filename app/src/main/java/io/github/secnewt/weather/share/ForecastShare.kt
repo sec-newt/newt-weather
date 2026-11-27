@@ -1,5 +1,6 @@
 package io.github.secnewt.weather.share
 
+import android.content.Context
 import android.net.Uri
 import io.github.secnewt.weather.data.Forecast
 import java.time.OffsetDateTime
@@ -7,13 +8,15 @@ import java.time.OffsetDateTime
 /**
  * What Newt Weather shares with other apps signed with the Newt key (Newt Home), and in what
  * shape. Only what a home screen shows: temperatures, conditions and active warnings. Not the
- * ZIP, the place name or NOAA's text, which stay in this app.
+ * ZIP, the place name or NOAA's text, which stay in this app. With several saved places,
+ * it's always the one showing in the app.
  *
  * Readers need the signature permission `<package>.permission.READ_FORECAST` and query:
  *   content://<package>.forecast/summary  → 0 rows (no forecast yet) or 1 row of SUMMARY_COLUMNS
  *   content://<package>.forecast/hourly   → up to 24 rows of HOURLY_COLUMNS, from this hour on
  * Values are worked out when queried, so they stay right between refreshes. Readers are told
- * (ContentResolver.notifyChange on the summary link) whenever a refresh lands.
+ * (ContentResolver.notifyChange on the summary link) whenever a refresh lands or the place
+ * showing changes.
  * Columns are only ever added, never renamed or removed; VERSION goes up when they are.
  */
 object ForecastShare {
@@ -50,6 +53,11 @@ object ForecastShare {
     const val HOURS = 24
 
     fun authority(packageName: String) = "$packageName.forecast"
+
+    /** Tells readers (Newt Home) to read again: a refresh landed, or the place showing changed. */
+    fun notifyChanged(context: Context) {
+        context.contentResolver.notifyChange(summaryUri(context.packageName), null)
+    }
 
     fun summaryUri(packageName: String): Uri = Uri.parse("content://${authority(packageName)}/$PATH_SUMMARY")
 
