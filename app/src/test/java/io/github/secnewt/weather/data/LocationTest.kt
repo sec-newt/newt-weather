@@ -28,4 +28,15 @@ class LocationTest {
             Location.decodeAll(Location.encodeAll(all)),
         )
     }
+
+    @Test
+    fun aLineBreakInANameDoesNotMakeANewPlace() =
+        assertEquals(listOf(city.copy(name = "A B")), Location.decodeAll(Location.encodeAll(listOf(city.copy(name = "A\nB")))))
+
+    @Test
+    fun coordinatesMustBePlainNumbers() {
+        assertEquals(null, Location.decode("Bad||../..|-95.55"))
+        assertEquals(null, Location.decode("Bad||33.67|"))
+        assertEquals(city, Location.decode("Paris, TX||33.67|-95.55"))
+    }
 }
