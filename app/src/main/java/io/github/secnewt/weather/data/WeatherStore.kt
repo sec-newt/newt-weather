@@ -44,15 +44,22 @@ class WeatherStore(private val context: Context) {
         prefs.edit().putString(KEY_ACTIVE, location.key).apply()
     }
 
-    /** Forgets a place and its forecast. If it was showing, the first place left shows instead. */
+    /**
+     * Forgets a place. If it was showing, the first place left shows instead. Quick, so the
+     * screen can call it; its saved forecast goes with [deleteFiles], off the main thread.
+     */
     fun remove(location: Location) = synchronized(LOCK) {
         val wasActive = active?.key == location.key
         locations = locations.filterNot { it.key == location.key }
-        dir(location).deleteRecursively()
         if (wasActive) {
             val next = locations.firstOrNull()
             prefs.edit().apply { if (next != null) putString(KEY_ACTIVE, next.key) else remove(KEY_ACTIVE) }.apply()
         }
+    }
+
+    /** Deletes a removed place's saved forecast (kept if the place was added again meanwhile). */
+    fun deleteFiles(location: Location) = synchronized(LOCK) {
+        if (!isSaved(location)) dir(location).deleteRecursively()
     }
 
     /** Gives a ZIP-only place NOAA's name for it. */
@@ -116,9 +123,10 @@ class WeatherStore(private val context: Context) {
     /** The last forecast for the place showing, or null if there isn't one yet (or it can't be read). */
     fun load(): Forecast? = active?.let { load(it) }
 
-    fun load(location: Location): Forecast? {
+    // Under the lock, so the files all come from one save: an old forecast never gets a new time.
+    fun load(location: Location): Forecast? = synchronized(LOCK) {
         val dir = dir(location)
-        return runCatching {
+        runCatching {
             val points = NoaaParser.points(read(dir, POINTS)!!)
             Forecast(
                 location = location,

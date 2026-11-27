@@ -22,14 +22,15 @@ import io.github.secnewt.weather.data.WeatherStore
 class WarningNotifier(private val context: Context, private val store: WeatherStore = WeatherStore(context)) {
 
     /** Notifies about the forecast's new Warnings, named with its place ("Tornado Warning · Paris, TX"). */
-    fun notifyNew(forecast: Forecast) {
+    // One at a time across the app: the screen and the background refresh mustn't both send one warning.
+    fun notifyNew(forecast: Forecast): Unit = synchronized(LOCK) {
         val warnings = forecast.alerts.filter { it.isWarning }
         val place = forecast.location
         val already = store.notifiedWarnings(place)
         // Forget warnings NOAA has dropped, so the list doesn't grow forever.
         store.saveNotifiedWarnings(place, already.intersect(warnings.map { it.id }.toSet()))
         val fresh = warnings.filter { it.id !in already }
-        if (fresh.isEmpty() || !WarningAlerts.shouldNotify(store.warningAlerts, allowed(context))) return
+        if (fresh.isEmpty() || !WarningAlerts.shouldNotify(store.warningAlerts, allowed(context))) return@synchronized
         createChannel(context)
         val open = PendingIntent.getActivity(
             context, 0,
@@ -47,6 +48,7 @@ class WarningNotifier(private val context: Context, private val store: WeatherSt
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(open)
                 .setAutoCancel(true)
+                .setOnlyAlertOnce(true)
                 .build()
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
                 == PackageManager.PERMISSION_GRANTED
@@ -59,6 +61,7 @@ class WarningNotifier(private val context: Context, private val store: WeatherSt
 
     companion object {
         const val CHANNEL = "warnings"
+        private val LOCK = Any()
 
         fun allowed(context: Context): Boolean =
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==

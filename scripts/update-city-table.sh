@@ -14,6 +14,14 @@ trap 'rm -rf "$tmp"' EXIT
 
 curl -sSfL "$url" -o "$tmp/place.zip"
 unzip -q "$tmp/place.zip" -d "$tmp"
+# Some years' files use tabs or other columns; stop rather than write a broken table.
+expected="USPS|GEOID|GEOIDFQ|ANSICODE|NAME|LSAD|FUNCSTAT|ALAND|AWATER|ALAND_SQMI|AWATER_SQMI|INTPTLAT|INTPTLONG"
+header="$(head -n 1 "$tmp"/*_Gaz_place_national.txt | tr -d '\r' | sed 's/[[:space:]]*$//')"
+if [[ "$header" != "$expected" ]]; then
+  echo "The ${year} file's columns aren't the ones this script reads; $out is unchanged." >&2
+  echo "Got: $header" >&2
+  exit 1
+fi
 mkdir -p "$(dirname "$out")"
 {
   echo "# name|state|latitude|longitude — Census Bureau ${year} places gazetteer (public domain)."
@@ -32,5 +40,6 @@ mkdir -p "$(dirname "$out")"
     | sort -t'|' -k1,1nr \
     | awk -F'|' '!seen[$2 "|" $3]++ { print $2 "|" $3 "|" $4 "|" $5 }' \
     | LC_ALL=C sort -t'|' -k2,2 -k1,1
-} > "$out"
+} > "$tmp/out"
+mv "$tmp/out" "$out"
 echo "Wrote $(grep -vc '^#' "$out") places to $out"

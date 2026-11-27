@@ -338,14 +338,14 @@ private fun DayCard(day: Day) {
 private fun Footer(forecast: Forecast, zone: ZoneId, refreshing: Boolean, status: String?, onRefresh: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            "From the National Weather Service. Updated ${timeText(forecast.fetchedAt.atZone(zone).toOffsetDateTime())}.",
+            "From the National Weather Service. Updated ${updatedText(forecast.fetchedAt.atZone(zone).toOffsetDateTime(), java.time.LocalDate.now(zone))}.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (status != null) Text(status, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
         OutlinedButton(
+            // Never greyed out (hard to read): a tap while updating does nothing.
             onClick = onRefresh,
-            enabled = !refreshing,
             border = neonOutline(),
             modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
         ) {
@@ -383,7 +383,7 @@ fun LoadingScreen(
                 style = MaterialTheme.typography.bodyLarge,
                 color = if (status != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground,
             )
-            Button(onClick = onRetry, enabled = !refreshing, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+            Button(onClick = onRetry, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
                 Text(if (refreshing) "Updating…" else "Try again", style = MaterialTheme.typography.titleMedium)
             }
             places()

@@ -33,16 +33,22 @@ object CitySearch {
 
     fun search(rows: List<String>, query: String): List<Location> {
         val (name, state) = split(query)
+        // Commas only split a name from its state, so they're no part of a whole name.
+        val whole = lazy { matches(rows, normalize(query.replace(',', ' ')), null) }
+        // "West New York" is a town in New Jersey, not "West" in New York: with no comma, a
+        // place with exactly the typed name comes before reading the end as a state.
+        if (state != null && ',' !in query && whole.value.first == 0) return whole.value.second
         if (state != null) {
-            val found = matches(rows, name, state)
+            val found = matches(rows, name, state).second
             // "Bel Air" isn't "Bel" in Arizona: if the state reading finds nothing, try it as a name.
             if (found.isNotEmpty()) return found
         }
-        return matches(rows, normalize(query), null)
+        return whole.value.second
     }
 
-    private fun matches(rows: List<String>, name: String, state: String?): List<Location> {
-        if (name.isEmpty()) return emptyList()
+    /** The best tier that matched (null for none) and its places. */
+    private fun matches(rows: List<String>, name: String, state: String?): Pair<Int?, List<Location>> {
+        if (name.isEmpty()) return null to emptyList()
         val tiers = List(3) { mutableListOf<Location>() }
         for (row in rows) {
             if (row.startsWith("#")) continue
@@ -59,7 +65,8 @@ object CitySearch {
             }
         }
         // Up to LIMIT + 1, so the caller can tell "exactly LIMIT" from "more than LIMIT".
-        return tiers.firstOrNull { it.isNotEmpty() }.orEmpty()
+        val best = tiers.indexOfFirst { it.isNotEmpty() }
+        return if (best < 0) null to emptyList() else best to tiers[best]
     }
 
     /** 0 = the whole name, or part of a joined one; 1 = start of the name; 2 = start of a word. */
@@ -89,9 +96,9 @@ object CitySearch {
         return normalize(text) to null
     }
 
-    /** "tx", "Texas" or "TX." → "TX"; null if it isn't a state. */
+    /** "tx", "Texas", "TX." or "D.C." → the code; null if it isn't a state. */
     internal fun stateCode(text: String): String? {
-        val key = text.trim().trimEnd('.').lowercase()
+        val key = text.trim().replace(".", "").lowercase()
         if (key.length == 2) return key.uppercase().takeIf { it in STATES.values }
         return STATES[key]
     }

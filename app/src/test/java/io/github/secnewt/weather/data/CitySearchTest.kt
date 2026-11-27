@@ -18,6 +18,10 @@ class CitySearchTest {
         "St. Louis|MO|38.6300|-90.2400",
         "Bel Air|MD|39.5300|-76.3500",
         "Utqiaġvik|AK|71.2644|-156.7537",
+        "West New York|NJ|40.7856|-74.0093",
+        "West Babylon|NY|40.7130|-73.3560",
+        "Washington|DC|38.9047|-77.0163",
+        "Washington|PA|40.1740|-80.2462",
     )
 
     private fun names(query: String) = CitySearch.search(rows, query).map { it.name }
@@ -80,5 +84,18 @@ class CitySearchTest {
     fun longListsSayThereAreMore() {
         val many = (1..40).map { "Springfield|S$it|39.0|-90.0" }
         assertEquals(CitySearch.LIMIT + 1, CitySearch.search(many, "Springfield").size)
+    }
+
+    @Test
+    fun aWholeNameBeatsReadingTheEndAsAState() {
+        assertEquals(listOf("West New York, NJ"), names("West New York"))
+        // With a comma, the state is meant.
+        assertEquals(listOf("West Babylon, NY"), names("West, New York"))
+    }
+
+    @Test
+    fun dcWithPeriods() {
+        assertEquals(listOf("Washington, DC"), names("Washington, D.C."))
+        assertEquals(listOf("Washington, DC"), names("Washington DC"))
     }
 }

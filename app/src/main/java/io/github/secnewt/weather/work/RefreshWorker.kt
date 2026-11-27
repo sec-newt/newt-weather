@@ -18,10 +18,12 @@ import java.util.concurrent.TimeUnit
 class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        if (WeatherStore(applicationContext).active == null) return Result.success()
+        val store = WeatherStore(applicationContext)
+        if (store.active == null) return Result.success()
         return try {
             val forecast = WeatherRepository(applicationContext).refresh()
-            WarningNotifier(applicationContext).notifyNew(forecast)
+            // Switched to another place meanwhile: these warnings wait until it's showing again.
+            if (store.active?.key == forecast.location.key) WarningNotifier(applicationContext, store).notifyNew(forecast)
             Result.success()
         } catch (e: RefreshException) {
             // The next scheduled run tries again; no need to hammer NOAA.

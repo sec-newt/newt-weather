@@ -44,6 +44,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.Instant
@@ -74,7 +76,7 @@ class MainActivity : ComponentActivity() {
 
     private val askNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         notificationsAllowed = granted
-        if (granted) forecast?.let { WarningNotifier(this).notifyNew(it) }
+        if (granted) forecast?.let { shown -> notifyWarnings(shown) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -108,11 +110,21 @@ class MainActivity : ComponentActivity() {
         warningAlertsStored = store.warningAlerts
         // A background refresh may have named a ZIP-only place, or brought a newer forecast.
         reloadPlaces()
-        store.load()?.let { saved ->
-            val shown = forecast
-            if (shown == null || shown.location.key != saved.location.key || saved.fetchedAt > shown.fetchedAt) forecast = saved
+        lifecycleScope.launch {
+            val saved = withContext(Dispatchers.IO) { store.load() }
+            if (saved != null && saved.location.key == active?.key) {
+                val shown = forecast
+                if (shown == null || shown.location.key != saved.location.key || saved.fetchedAt > shown.fetchedAt) forecast = saved
+            }
+            refreshIfStale()
         }
-        refreshIfStale()
+    }
+
+    /** Warnings read and write their history on disk, so they're sent off the main thread. */
+    private fun notifyWarnings(forecast: Forecast) {
+        // Not tied to the screen: closing the app right then mustn't drop a warning.
+        val context = applicationContext
+        BACKGROUND.launch { WarningNotifier(context).notifyNew(forecast) }
     }
 
     private fun reloadPlaces() {
@@ -243,18 +255,27 @@ class MainActivity : ComponentActivity() {
         if (refreshingKey != place.key) stopRefresh()
         store.activate(place)
         active = place
-        forecast = store.load(place)
         status = null
         // Newt Home follows the place showing.
         ForecastShare.notifyChanged(this)
         RefreshWorker.schedule(this)
-        refreshIfStale()
+        lifecycleScope.launch {
+            val saved = withContext(Dispatchers.IO) { store.load(place) }
+            // Tapping quickly through places: only the last one tapped lands.
+            if (active?.key != place.key) return@launch
+            // A refresh for this place may have landed first; keep the newer one.
+            val shown = forecast
+            if (shown == null || shown.location.key != place.key || (saved != null && saved.fetchedAt > shown.fetchedAt)) forecast = saved
+            refreshIfStale()
+        }
     }
 
     private fun remove(place: Location) {
         val wasShowing = place.key == active?.key
         if (refreshingKey == place.key) stopRefresh()
+        // The list changes now, so the place can't be tapped again; its files go in the background.
         store.remove(place)
+        BACKGROUND.launch { store.deleteFiles(place) }
         locations = store.locations
         val next = store.active
         if (next == null) {
@@ -290,7 +311,7 @@ class MainActivity : ComponentActivity() {
                 status = null
                 // A ZIP-only place may have just been given NOAA's name for it.
                 reloadPlaces()
-                WarningNotifier(this@MainActivity).notifyNew(fresh)
+                notifyWarnings(fresh)
             } catch (e: RefreshException) {
                 if (active?.key == place.key) status = e.message
             } finally {
@@ -303,5 +324,6 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         val STALE: Duration = Duration.ofMinutes(30)
+        val BACKGROUND = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     }
 }

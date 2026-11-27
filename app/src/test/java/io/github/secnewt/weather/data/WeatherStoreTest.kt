@@ -53,6 +53,7 @@ class WeatherStoreTest {
         store.add(paris)
         store.activate(Fixtures.OKC)
         store.remove(Fixtures.OKC)
+        store.deleteFiles(Fixtures.OKC)
         assertEquals(listOf(paris), store.locations)
         assertEquals(paris, store.active)
         assertNull("its forecast went with it", store.load(Fixtures.OKC))
@@ -110,5 +111,17 @@ class WeatherStoreTest {
         assertNull(store.load(paris))
         assertEquals(listOf(Fixtures.OKC), store.locations)
         assertEquals(false, File(context.filesDir, "noaa/${paris.key}").exists())
+    }
+
+    @Test
+    fun addedBackBeforeItsFilesWentKeepsThem() {
+        val store = WeatherStore(context)
+        store.add(Fixtures.OKC)
+        saveForecast(store, Fixtures.OKC)
+        store.add(paris)
+        store.remove(Fixtures.OKC)
+        store.add(Fixtures.OKC)
+        store.deleteFiles(Fixtures.OKC)
+        assertEquals(Fixtures.OKC, store.load(Fixtures.OKC)?.location)
     }
 }
